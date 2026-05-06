@@ -6,17 +6,17 @@ Serves the dashboard and exposes the latest report via API.
 import glob
 import json
 import os
-from flask import Flask, jsonify, send_from_directory
+from flask import Flask, jsonify, send_file
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 REPORTS_DIR = os.path.join(BASE_DIR, "reports")
 
-app = Flask(__name__, static_folder=BASE_DIR)
+app = Flask(__name__)
 
 
 @app.route("/")
 def index():
-    return send_from_directory(BASE_DIR, "dashboard.html")
+    return send_file(os.path.join(BASE_DIR, "dashboard.html"))
 
 
 @app.route("/api/latest-report")
