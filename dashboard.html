@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Pocketly Social Intelligence Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3350;
+    --accent: #6c63ff;
+    --accent2: #00d4aa;
+    --red: #ff4f6b;
+    --yellow: #ffb547;
+    --green: #00d4aa;
+    --text: #e8eaf6;
+    --muted: #8890b0;
+    --p1: #ff4f6b;
+    --p2: #ffb547;
+    --p3: #00d4aa;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, sans-serif; font-size: 14px; line-height: 1.6; }
+
+  /* Layout */
+  .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+  .topbar-left { display: flex; align-items: center; gap: 12px; }
+  .logo { font-size: 20px; font-weight: 700; color: var(--accent); letter-spacing: -0.5px; }
+  .logo span { color: var(--text); }
+  .badge { background: var(--accent); color: white; font-size: 11px; padding: 2px 8px; border-radius: 99px; font-weight: 600; }
+  .topbar-right { display: flex; align-items: center; gap: 16px; color: var(--muted); font-size: 13px; }
+  .week-pill { background: var(--surface2); border: 1px solid var(--border); padding: 4px 12px; border-radius: 8px; font-size: 12px; }
+
+  .main { max-width: 1400px; margin: 0 auto; padding: 28px 32px; display: grid; gap: 20px; }
+
+  /* Cards */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px; }
+  .card-title { font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
+
+  /* Grid layouts */
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-65-35 { display: grid; grid-template-columns: 1.8fr 1fr; gap: 20px; }
+
+  /* Stat cards */
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px 24px; }
+  .stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 8px; }
+  .stat-value { font-size: 36px; font-weight: 700; line-height: 1; }
+  .stat-sub { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .stat-value.red { color: var(--red); }
+  .stat-value.yellow { color: var(--yellow); }
+  .stat-value.green { color: var(--green); }
+  .stat-value.accent { color: var(--accent); }
+
+  /* Executive summary */
+  .summary-text { font-size: 15px; line-height: 1.8; color: var(--text); border-left: 3px solid var(--accent); padding-left: 16px; }
+
+  /* Sentiment meter */
+  .meter-wrap { display: flex; align-items: center; gap: 16px; }
+  .meter-bar-bg { flex: 1; height: 10px; background: var(--surface2); border-radius: 99px; overflow: hidden; }
+  .meter-bar { height: 100%; border-radius: 99px; transition: width 1s ease; }
+  .meter-label { font-size: 22px; font-weight: 700; min-width: 40px; text-align: right; }
+
+  /* Action items */
+  .action-item { background: var(--surface2); border-radius: 12px; padding: 16px 18px; margin-bottom: 10px; border-left: 4px solid transparent; display: flex; align-items: flex-start; gap: 14px; }
+  .action-item.p1 { border-color: var(--p1); }
+  .action-item.p2 { border-color: var(--p2); }
+  .action-item.p3 { border-color: var(--p3); }
+  .action-meta { display: flex; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; }
+  .tag { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .tag.p1 { background: rgba(255,79,107,0.15); color: var(--p1); }
+  .tag.p2 { background: rgba(255,181,71,0.15); color: var(--p2); }
+  .tag.p3 { background: rgba(0,212,170,0.15); color: var(--p3); }
+  .tag.team { background: rgba(108,99,255,0.15); color: var(--accent); }
+  .tag.effort { background: rgba(136,144,176,0.12); color: var(--muted); }
+  .action-text { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .action-rationale { font-size: 12px; color: var(--muted); line-height: 1.5; }
+  .action-number { font-size: 11px; font-weight: 700; color: var(--muted); min-width: 22px; padding-top: 3px; }
+
+  /* Competitor cards */
+  .competitor { background: var(--surface2); border-radius: 12px; padding: 16px; }
+  .comp-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .comp-name { font-weight: 700; font-size: 15px; }
+  .comp-count { font-size: 12px; color: var(--muted); }
+  .sentiment-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
+  .sentiment-dot.positive { background: var(--green); }
+  .sentiment-dot.neutral { background: var(--muted); }
+  .sentiment-dot.negative { background: var(--red); }
+  .sentiment-dot.mixed { background: var(--yellow); }
+  .comp-section { margin-top: 8px; }
+  .comp-section-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); margin-bottom: 4px; }
+  .comp-bullets { list-style: none; }
+  .comp-bullets li { font-size: 12px; line-height: 1.5; color: var(--text); padding: 2px 0; padding-left: 14px; position: relative; }
+  .comp-bullets li::before { content: '•'; position: absolute; left: 0; color: var(--muted); }
+  .comp-empty { color: var(--muted); font-size: 12px; font-style: italic; }
+
+  /* Pain points */
+  .pain-item { background: var(--surface2); border-radius: 12px; padding: 16px 18px; margin-bottom: 10px; }
+  .pain-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .pain-title { font-weight: 600; font-size: 13px; }
+  .freq-badge { font-size: 10px; padding: 2px 8px; border-radius: 6px; font-weight: 700; text-transform: uppercase; }
+  .freq-badge.high { background: rgba(255,79,107,0.15); color: var(--red); }
+  .freq-badge.medium { background: rgba(255,181,71,0.15); color: var(--yellow); }
+  .freq-badge.low { background: rgba(0,212,170,0.15); color: var(--green); }
+  .pain-quote { font-size: 12px; color: var(--muted); font-style: italic; border-left: 2px solid var(--border); padding-left: 10px; margin: 8px 0; line-height: 1.5; }
+  .pain-opp { font-size: 12px; color: var(--accent2); line-height: 1.5; }
+  .pain-opp::before { content: '💡 '; }
+
+  /* Trends */
+  .trend-item { background: var(--surface2); border-radius: 12px; padding: 16px 18px; margin-bottom: 10px; }
+  .trend-title { font-weight: 600; font-size: 13px; margin-bottom: 6px; color: var(--accent); }
+  .trend-desc { font-size: 12px; color: var(--text); margin-bottom: 6px; line-height: 1.5; }
+  .trend-impl { font-size: 12px; color: var(--accent2); line-height: 1.5; }
+  .trend-impl::before { content: '📌 '; }
+
+  /* Risk flags */
+  .risk-flag { background: rgba(255,79,107,0.08); border: 1px solid rgba(255,79,107,0.2); border-radius: 10px; padding: 10px 14px; margin-bottom: 8px; font-size: 12px; color: var(--text); line-height: 1.5; }
+  .risk-flag::before { content: '⚠️  '; }
+
+  /* Content opps */
+  .content-opp { background: var(--surface2); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; }
+  .content-opp-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .platform-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 6px; background: rgba(108,99,255,0.2); color: var(--accent); text-transform: uppercase; }
+  .thread-link { font-size: 11px; color: var(--accent); text-decoration: none; word-break: break-all; }
+  .thread-link:hover { text-decoration: underline; }
+  .content-angle { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+  /* Chart containers */
+  .chart-wrap { position: relative; height: 200px; }
+
+  /* Scrollable action list */
+  .action-scroll { max-height: 520px; overflow-y: auto; padding-right: 4px; }
+  .action-scroll::-webkit-scrollbar { width: 4px; }
+  .action-scroll::-webkit-scrollbar-track { background: transparent; }
+  .action-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .section-title { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .section-sub { font-size: 12px; color: var(--muted); margin-bottom: 16px; }
+
+  @media (max-width: 900px) {
+    .grid-4, .grid-3, .grid-2, .grid-65-35 { grid-template-columns: 1fr; }
+    .main { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo">Pocket<span>ly</span></div>
+    <div class="badge">Social Intelligence</div>
+  </div>
+  <div class="topbar-right">
+    <span id="weekLabel" class="week-pill">Loading…</span>
+    <span id="postsCount"></span>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- Row 1: Stats -->
+  <div class="grid-4" id="statsRow"></div>
+
+  <!-- Row 2: Summary + Sentiment + Risk -->
+  <div class="grid-65-35">
+    <div class="card">
+      <div class="card-title">Executive Summary</div>
+      <div class="summary-text" id="execSummary"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div class="card" style="flex:1">
+        <div class="card-title">Sentiment Score</div>
+        <div id="sentimentMeter"></div>
+      </div>
+      <div class="card" style="flex:2;overflow:auto;max-height:200px">
+        <div class="card-title">Risk Flags</div>
+        <div id="riskFlags"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 3: Actions + Competitor Chart -->
+  <div class="grid-65-35">
+    <div class="card">
+      <div class="section-title">Action Items</div>
+      <div class="section-sub" id="actionSubtitle"></div>
+      <div class="action-scroll" id="actionItems"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Competitor Mentions</div>
+      <div class="chart-wrap"><canvas id="compChart"></canvas></div>
+      <div style="margin-top:16px" id="pocketlyMentions"></div>
+    </div>
+  </div>
+
+  <!-- Row 4: Competitors detail -->
+  <div class="card">
+    <div class="section-title">Competitor Deep Dive</div>
+    <div class="section-sub">What users love and hate about each competitor this week</div>
+    <div class="grid-3" id="competitorCards"></div>
+  </div>
+
+  <!-- Row 5: Pain Points + Trends -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="section-title">User Pain Points</div>
+      <div class="section-sub">Verbatim signals + product opportunities</div>
+      <div id="painPoints"></div>
+    </div>
+    <div class="card">
+      <div class="section-title">Emerging Trends</div>
+      <div class="section-sub">Shifts in the lending conversation</div>
+      <div id="trends"></div>
+    </div>
+  </div>
+
+  <!-- Row 6: Content Opportunities -->
+  <div class="card">
+    <div class="section-title">Content & Community Opportunities</div>
+    <div class="section-sub">Specific threads where Pocketly should show up this week</div>
+    <div class="grid-2" id="contentOpps"></div>
+  </div>
+
+</div>
+
+<script>
+// ── Load latest JSON report from API ─────────────────────────────────────────
+async function loadReport() {
+  const resp = await fetch('/api/latest-report');
+  if (!resp.ok) throw new Error('No report available');
+  return resp.json();
+}
+
+const REPORT_DATA ={"executive_summary": "This week's social signal is dominated by deep user anxiety around predatory lending, debt traps, and harassment from recovery agents — with zero direct Pocketly mentions, indicating a brand visibility problem rather than a reputation crisis. MoneyView surfaces multiple times, mostly in neutral-to-negative contexts as part of debt-laden user budgets, suggesting incumbents are associated with financial stress rather than empowerment. The loudest conversation is a growing distrust of the entire loan-app category, with users actively warning each other off short-tenure, high-interest products — a direct threat to acquisition if Pocketly is perceived as sitting in that bucket. The counter-opportunity is real: users in genuine distress are hungry for a lender that signals transparency, fairness, and human dignity, and no current player is owning that positioning.", "brand_mentions": {"pocketly": {"count": 0, "sentiment": "neutral", "key_themes": ["brand absent from high-engagement financial distress conversations", "no organic user advocacy or criticism detected"], "notable_quotes": []}, "competitors": [{"name": "MoneyView", "count": 4, "sentiment": "negative", "what_users_love": ["categorised alongside banks as relatively more legitimate than predatory payday sites", "longer repayment windows vs payday lenders"], "what_users_hate": ["EMI burden contributes to monthly financial anxiety", "associated with debt accumulation and multi-loan rotation", "named as part of debt stacks users are struggling to escape", "perceived as a 'bloodsucker' when channelled through third-party finance companies like Clix Capital"]}, {"name": "CreditBee", "count": 1, "sentiment": "neutral", "what_users_love": ["mentioned as one of the relatively safer app-based options"], "what_users_hate": ["no specific positive differentiation from the broader troubled loan-app category"]}, {"name": "mPocket", "count": 0, "sentiment": "neutral", "what_users_love": [], "what_users_hate": []}, {"name": "MoneyTap", "count": 0, "sentiment": "neutral", "what_users_love": [], "what_users_hate": []}, {"name": "TrueBalance", "count": 0, "sentiment": "neutral", "what_users_love": [], "what_users_hate": []}]}, "user_pain_points": [{"pain_point": "Debt rotation trap — borrowing from new apps to repay old ones", "frequency": "high", "verbatim": "I personally started with just one lender, but ended up with 6+ lenders, because I had to keep rotating loans just to pay interest. It becomes a trap very fast.", "opportunity_for_pocketly": "Build and prominently market a hard borrowing limit guardrail and a 'debt health check' feature that flags if a user appears to be in rotation — differentiate as the app that actively prevents over-borrowing rather than enabling it."}, {"pain_point": "Abusive recovery and harassment by lenders", "frequency": "high", "verbatim": "If you miss even 1 day: Continuous OTP bombing, non-stop calls + abusive language.", "opportunity_for_pocketly": "Make Pocketly's collections policy a public-facing trust signal — commit to RBI-compliant, zero-harassment recovery in app store copy, onboarding screens, and social content. This is a massive differentiator in a category defined by predatory collections."}, {"pain_point": "Opacity of true loan cost — hidden fees and net disbursement shock", "frequency": "high", "verbatim": "Loan: ₹20,000. You get: ₹16,000. Repay: ₹28,000 within 7–30 days. That's ₹7K–₹12K interest for just days.", "opportunity_for_pocketly": "Introduce a pre-disbursal 'Total Cost of Borrowing' screen showing exact rupee amounts received vs. repaid vs. interest — no jargon, no APR alone. Make this a core UX moment and advertise it explicitly."}, {"pain_point": "EMI-to-income ratio anxiety for salaried users", "frequency": "medium", "verbatim": "I am feeling a lot of financial anxiety. My fixed expenses are so high… Moneyview Loan: ₹5,700 [contributing to ₹47.3k monthly fixed outflows on ₹88k salary].", "opportunity_for_pocketly": "Offer a pre-approval eligibility check that includes a debt-to-income ratio warning before loan acceptance — position Pocketly as a responsible lender that tells users when they shouldn't borrow."}, {"pain_point": "CIBIL score fear overriding rational financial decisions", "frequency": "medium", "verbatim": "I watch people drain their emergency funds and skip meals just to pay the minimum due on five different loan apps. They are terrified of getting a default remark on their credit report.", "opportunity_for_pocketly": "Create educational in-app content and social posts that demystify credit scores — explain what actually damages a score vs. myths — and offer a free credit health monitor as a retention/engagement feature."}, {"pain_point": "No trusted escalation path for grievances against loan apps", "frequency": "medium", "verbatim": "There is no such way to handle them. You cannot write in their grievance for the harassment. You cannot give a cyber crime complaint. Not even in RBI.", "opportunity_for_pocketly": "Publicise a clear, accessible in-app grievance mechanism with SLA commitments, and register prominently with RBI's Sachet and ombudsman portals — then market this transparency as a feature."}], "emerging_trends": [{"trend": "Category-wide reputational collapse of loan apps", "description": "Influential community voices are actively advising users to avoid ALL loan apps, painting the entire category with the same predatory brush regardless of regulatory status. High-score posts (355, 58, 27 upvotes) are amplifying this narrative to tens of thousands of readers.", "pocketly_implication": "Pocketly must urgently invest in category differentiation — if we don't proactively separate ourselves from predatory players in messaging and UX, we will be swept up in the backlash and face rising CAC and conversion resistance."}, {"trend": "Debt advisory and financial distress content gaining high engagement", "description": "Posts about debt traps, EMI overload, and mental health tied to financial stress are among the highest-scoring content on IndiaFinance and personalfinanceindia this week. Users in distress are actively seeking community guidance rather than going to lenders.", "pocketly_implication": "There is a content marketing gap to fill — Pocketly should build authority as a trustworthy financial wellness voice on these subreddits, not just a lender, through genuinely helpful debt-management content."}, {"trend": "Middle-income salaried workers as the core distressed borrower segment", "description": "The most-engaged posts consistently profile users earning ₹40k–₹90k/month who are over-leveraged, often due to life events (marriage, family emergencies), and cycling through multiple loan products. This cohort is neither served by banks nor protected from predatory apps.", "pocketly_implication": "This is Pocketly's core addressable market. Product and underwriting should be optimised for salaried users with ₹30k–₹90k income and one-off emergency needs — with loan sizing and tenure calibrated to their actual repayment capacity."}, {"trend": "Strategic loan default being discussed as a rational option", "description": "A debt advisory professional posted advice that defaulting on unsecured loans is sometimes the 'smartest mathematical move,' sparking significant debate. This signals eroding faith in the system and normalisation of default.", "pocketly_implication": "Risk signal — this trend, if it gains traction, increases NPA exposure across the industry. Pocketly's risk models should track community sentiment as a leading indicator and tighten underwriting for segments showing high overlap with debt-trap profiles."}], "competitor_weaknesses": [{"competitor": "MoneyView", "weakness": "Associated with debt burden, not financial empowerment", "evidence": "MoneyView appears in two separate posts solely as a line item in users' debt breakdowns — ₹5,700 EMI adding to financial anxiety, and described in one case as part of a 'bloodsucker fraud' loan stack via Clix Capital.", "how_pocketly_can_exploit": "Position Pocketly as the loan you take and close quickly vs. MoneyView's image of a persistent debt anchor. Market shorter tenures with clear exit milestones and celebrate users who repay early — use 'borrow less, pay back fast' as a core brand message."}, {"competitor": "MoneyView", "weakness": "Third-party NBFC partnerships (e.g., Clix Capital) create brand toxicity", "evidence": "User explicitly called out 'a finance company named Clix Capital Agency' operating under MoneyView as a 'third-party loan app which are literally bloodsucker frauds.'", "how_pocketly_can_exploit": "If Pocketly uses NBFC partners, vet and name them transparently in-app at loan origination. Run a 'know your lender' campaign that contrasts Pocketly's transparent partner disclosure vs. opaque co-lending arrangements at competitors."}, {"competitor": "Broader category (all apps)", "weakness": "Zero credible player is owning ethical collections as a brand pillar", "evidence": "OTP bombing, abusive calls, and harassment described across multiple posts — no competitor is mentioned as an exception or safe harbour.", "how_pocketly_can_exploit": "Be the first mover to publicly publish a Collections Code of Conduct, display it in-app, and run social content around it. This is a free brand positioning play in a space where every competitor is silent."}], "action_items": [{"priority": "P1", "team": "Marketing", "action": "Launch a category differentiation campaign explicitly separating Pocketly from predatory payday apps — lead with transparency on costs and ethical collections.", "rationale": "High-score posts this week are painting all loan apps as predatory. Pocketly has zero presence in these conversations. Inaction means being lumped in with abusers as this narrative grows.", "effort": "medium"}, {"priority": "P1", "team": "Product", "action": "Build and ship a pre-disbursal 'Total Cost of Borrowing' screen showing exact rupees received, repaid, and interest — no APR jargon.", "rationale": "Users are being blindsided by net disbursement vs. repayment gaps (e.g., receive ₹16k, repay ₹28k). This is the #1 trust-destroyer in the category and a trivial UX fix for Pocketly.", "effort": "small"}, {"priority": "P1", "team": "CX", "action": "Publish a public-facing Collections Code of Conduct and surface it at onboarding and in the app's help centre.", "rationale": "Harassment by recovery agents is the single most emotionally charged complaint this week. No competitor owns ethical collections. First-mover advantage is available right now.", "effort": "small"}, {"priority": "P2", "team": "Growth", "action": "Deploy authentic, helpful Reddit participation in r/IndiaFinance and r/personalfinanceindia via a clearly disclosed Pocketly community account — answer debt questions, do not pitch.", "rationale": "These subreddits are where distressed borrowers congregate and make lending decisions. Pocketly has zero presence. High-engagement threads this week are direct entry points.", "effort": "small"}, {"priority": "P2", "team": "Product", "action": "Add a debt-to-income ratio check in the loan application flow that warns — and optionally blocks — users whose EMI burden would exceed 40% of stated income.", "rationale": "Users are taking loans they structurally cannot repay (e.g., ₹47k fixed outflows on ₹88k salary). A responsible-lending guardrail reduces NPA risk and is a differentiating brand signal.", "effort": "medium"}, {"priority": "P2", "team": "Marketing", "action": "Create a content series ('The Real Cost of That Loan') for Reddit and Reels explaining debt traps, rotation cycles, and how to evaluate a loan app — with Pocketly as the informed author, not the advertiser.", "rationale": "Debt advisory content is the highest-engagement content category on target subreddits this week. Owning this space builds trust before users need to borrow.", "effort": "medium"}, {"priority": "P3", "team": "Risk", "action": "Integrate social sentiment monitoring for debt-trap and default-normalisation discourse as a leading NPA indicator into the weekly risk review.", "rationale": "Strategic default is being discussed openly as rational by community voices this week. This is an early signal of changing repayment culture that should inform underwriting adjustments.", "effort": "small"}], "content_opportunities": [{"platform": "Reddit", "thread_url": "https://reddit.com/r/IndiaFinance/comments/1t4p0gi/payday_loans/", "suggested_response_angle": "Respond as a clearly disclosed Pocketly team member: acknowledge the very real dangers described, provide a factual checklist of how to verify if a loan app is RBI-registered, explain what a legitimate lending app's collections process should look like, and link to Pocketly's own Collections Code of Conduct. Do not pitch a product — pitch a standard."}, {"platform": "Reddit", "thread_url": "https://reddit.com/r/IndiaFinance/comments/1szeyf1/can_we_stop_pretending_a_74_lpa_salary_or_a_2/", "suggested_response_angle": "Engage with the post's core thesis — the invisibility of middle-income debt distress. Share a data point or insight about the ₹30k–₹90k salaried borrower segment, validate the 'rotation trap' observation with empathy, and subtly establish Pocketly as a voice that understands this cohort rather than exploits it."}, {"platform": "Reddit", "thread_url": "https://reddit.com/r/personalfinanceindia/comments/1szexoo/stop_destroying_your_mental_health_just_to/", "suggested_response_angle": "Add a balanced, expert-toned response to the default debate: outline the real consequences of settlement (credit exclusion, future borrowing inability), explain when negotiation with a lender is a better path, and position responsible lenders as ones who will negotiate before it reaches that point. Establish credibility without a hard sell."}, {"platform": "Reddit", "thread_url": "https://reddit.com/r/personalfinanceindia/comments/1szv3ii/advice_regarding_debt/", "suggested_response_angle": "Provide a structured debt-prioritisation response (avalanche method applied to the specific loans named), flag the credit card minimum-due trap explicitly, and offer a free resource or tool. This is a high-empathy engagement opportunity — the user is drowning and needs practical help, not a product pitch."}], "week_score": {"overall_sentiment_score": 3, "buzz_volume": "low", "risk_flags": ["Pocketly has zero organic brand mentions across high-traffic, high-engagement financial communities — invisibility is itself a risk as category distrust grows and users form lender blacklists without Pocketly on their radar at all", "Category-wide reputational crisis is accelerating — high-score posts actively advising users to avoid all loan apps will raise Pocketly's CAC and reduce conversion if not countered with visible differentiation", "Normalisation of strategic default being discussed openly on 350+ upvote posts is a leading indicator of potential NPA deterioration in the ₹30k–₹90k salaried segment — primary Pocketly target market", "MoneyView's association with third-party NBFCs (Clix Capital) creating brand toxicity — if Pocketly has similar co-lending arrangements, proactive disclosure is needed to avoid the same reputational spillover"]}, "posts_analysed": 6};
+
+function render(d) {
+  // Week label
+  const now = new Date();
+  document.getElementById('weekLabel').textContent =
+    'Week of ' + now.toLocaleDateString('en-IN', {day:'numeric',month:'short',year:'numeric'});
+  document.getElementById('postsCount').textContent = `${d.posts_analysed} posts analysed`;
+
+  // Stats row
+  const ws = d.week_score || {};
+  const bm = d.brand_mentions || {};
+  const pocketly = bm.pocketly || {};
+  const compTotal = (bm.competitors||[]).reduce((s,c)=>s+(c.count||0),0);
+  const actionCount = (d.action_items||[]).length;
+  const p1Count = (d.action_items||[]).filter(a=>a.priority==='P1').length;
+
+  document.getElementById('statsRow').innerHTML = `
+    <div class="stat">
+      <div class="stat-label">Sentiment Score</div>
+      <div class="stat-value ${ws.overall_sentiment_score<=3?'red':ws.overall_sentiment_score<=6?'yellow':'green'}">${ws.overall_sentiment_score}/10</div>
+      <div class="stat-sub">Industry buzz this week</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Pocketly Mentions</div>
+      <div class="stat-value accent">${pocketly.count||0}</div>
+      <div class="stat-sub">Direct brand mentions</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Competitor Mentions</div>
+      <div class="stat-value yellow">${compTotal}</div>
+      <div class="stat-sub">Across all tracked brands</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Action Items</div>
+      <div class="stat-value red">${actionCount}</div>
+      <div class="stat-sub">${p1Count} critical (P1) this week</div>
+    </div>
+  `;
+
+  // Executive summary
+  document.getElementById('execSummary').textContent = d.executive_summary || '';
+
+  // Sentiment meter
+  const score = ws.overall_sentiment_score || 0;
+  const color = score <= 3 ? 'var(--red)' : score <= 6 ? 'var(--yellow)' : 'var(--green)';
+  document.getElementById('sentimentMeter').innerHTML = `
+    <div style="margin-bottom:12px">
+      <div class="meter-wrap">
+        <div class="meter-bar-bg">
+          <div class="meter-bar" style="width:${score*10}%;background:${color}"></div>
+        </div>
+        <div class="meter-label" style="color:${color}">${score}</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:11px;color:var(--muted)">
+        <span>Very Negative</span><span>Neutral</span><span>Very Positive</span>
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--muted)">Buzz Volume: <span style="color:var(--text);font-weight:600">${ws.buzz_volume||'—'}</span></div>
+  `;
+
+  // Risk flags
+  const flags = ws.risk_flags || [];
+  document.getElementById('riskFlags').innerHTML = flags.length
+    ? flags.map(f=>`<div class="risk-flag">${f}</div>`).join('')
+    : '<div style="color:var(--muted);font-size:12px">No risk flags this week.</div>';
+
+  // Action items
+  const actions = d.action_items || [];
+  const p1 = actions.filter(a=>a.priority==='P1');
+  const p2 = actions.filter(a=>a.priority==='P2');
+  const p3 = actions.filter(a=>a.priority==='P3');
+  document.getElementById('actionSubtitle').textContent =
+    `${p1.length} critical · ${p2.length} important · ${p3.length} nice-to-have`;
+
+  document.getElementById('actionItems').innerHTML = [...p1,...p2,...p3].map((a,i)=>`
+    <div class="action-item ${a.priority.toLowerCase()}">
+      <div class="action-number">${i+1}</div>
+      <div style="flex:1">
+        <div class="action-meta">
+          <span class="tag ${a.priority.toLowerCase()}">${a.priority}</span>
+          <span class="tag team">${a.team}</span>
+          <span class="tag effort">${a.effort} effort</span>
+        </div>
+        <div class="action-text">${a.action}</div>
+        <div class="action-rationale">${a.rationale}</div>
+      </div>
+    </div>
+  `).join('');
+
+  // Competitor chart
+  const comps = (bm.competitors||[]).filter(c=>c.count>0);
+  const allComps = bm.competitors||[];
+  const chartColors = ['#6c63ff','#ff4f6b','#ffb547','#00d4aa','#ff9f43','#a29bfe'];
+  if (comps.length > 0) {
+    new Chart(document.getElementById('compChart'), {
+      type: 'doughnut',
+      data: {
+        labels: comps.map(c=>c.name),
+        datasets: [{
+          data: comps.map(c=>c.count),
+          backgroundColor: chartColors.slice(0,comps.length),
+          borderWidth: 0,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position:'right', labels:{ color:'#8890b0', font:{size:11}, boxWidth:10 } }
+        },
+        cutout: '65%'
+      }
+    });
+  } else {
+    document.getElementById('compChart').parentElement.innerHTML =
+      '<div style="color:var(--muted);font-size:13px;padding:40px;text-align:center">No competitor mentions this week</div>';
+  }
+
+  // Pocketly brand note
+  const sentColor = {positive:'var(--green)',neutral:'var(--muted)',negative:'var(--red)',mixed:'var(--yellow)'};
+  document.getElementById('pocketlyMentions').innerHTML = `
+    <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Pocketly</div>
+    <div style="font-size:13px;font-weight:600">${pocketly.count||0} mentions ·
+      <span style="color:${sentColor[pocketly.sentiment]||'var(--muted)'}">${pocketly.sentiment||'—'}</span>
+    </div>
+    ${(pocketly.key_themes||[]).map(t=>`<div style="font-size:11px;color:var(--muted);margin-top:3px">• ${t}</div>`).join('')}
+  `;
+
+  // Competitor cards
+  document.getElementById('competitorCards').innerHTML = allComps.map(c=>`
+    <div class="competitor">
+      <div class="comp-header">
+        <div class="comp-name">${c.name}</div>
+        <div class="comp-count">${c.count} mention${c.count!==1?'s':''}</div>
+      </div>
+      <div style="font-size:12px;margin-bottom:10px">
+        <span class="sentiment-dot ${c.sentiment}"></span>${c.sentiment}
+      </div>
+      ${c.what_users_love&&c.what_users_love.length ? `
+        <div class="comp-section">
+          <div class="comp-section-label">✓ What users love</div>
+          <ul class="comp-bullets">${c.what_users_love.map(l=>`<li>${l}</li>`).join('')}</ul>
+        </div>` : ''}
+      ${c.what_users_hate&&c.what_users_hate.length ? `
+        <div class="comp-section" style="margin-top:8px">
+          <div class="comp-section-label">✗ What users hate</div>
+          <ul class="comp-bullets">${c.what_users_hate.map(h=>`<li>${h}</li>`).join('')}</ul>
+        </div>` : '<div class="comp-empty" style="margin-top:8px">No mentions this week</div>'}
+    </div>
+  `).join('');
+
+  // Pain points
+  document.getElementById('painPoints').innerHTML = (d.user_pain_points||[]).map(p=>`
+    <div class="pain-item">
+      <div class="pain-header">
+        <div class="pain-title">${p.pain_point}</div>
+        <span class="freq-badge ${p.frequency}">${p.frequency}</span>
+      </div>
+      <div class="pain-quote">"${p.verbatim}"</div>
+      <div class="pain-opp">${p.opportunity_for_pocketly}</div>
+    </div>
+  `).join('');
+
+  // Trends
+  document.getElementById('trends').innerHTML = (d.emerging_trends||[]).map(t=>`
+    <div class="trend-item">
+      <div class="trend-title">${t.trend}</div>
+      <div class="trend-desc">${t.description}</div>
+      <div class="trend-impl">${t.pocketly_implication}</div>
+    </div>
+  `).join('');
+
+  // Content opportunities
+  document.getElementById('contentOpps').innerHTML = (d.content_opportunities||[]).map(c=>`
+    <div class="content-opp">
+      <div class="content-opp-header">
+        <span class="platform-badge">${c.platform}</span>
+        ${c.thread_url ? `<a class="thread-link" href="${c.thread_url}" target="_blank">↗ View thread</a>` : ''}
+      </div>
+      <div class="content-angle">${c.suggested_response_angle}</div>
+    </div>
+  `).join('');
+}
+
+// Boot — fetch from API, fall back to embedded data
+loadReport().then(render).catch(() => render(REPORT_DATA));
+</script>
+</body>
+</html>
