@@ -8,17 +8,20 @@ import json
 import os
 from flask import Flask, jsonify, send_from_directory
 
-app = Flask(__name__, static_folder=".")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+REPORTS_DIR = os.path.join(BASE_DIR, "reports")
+
+app = Flask(__name__, static_folder=BASE_DIR)
 
 
 @app.route("/")
 def index():
-    return send_from_directory(".", "dashboard.html")
+    return send_from_directory(BASE_DIR, "dashboard.html")
 
 
 @app.route("/api/latest-report")
 def latest_report():
-    reports = sorted(glob.glob("reports/pocketly_social_raw_*.json"))
+    reports = sorted(glob.glob(os.path.join(REPORTS_DIR, "pocketly_social_raw_*.json")))
     if not reports:
         return jsonify({"error": "No reports available yet."}), 404
     with open(reports[-1], encoding="utf-8") as f:
@@ -28,7 +31,7 @@ def latest_report():
 
 @app.route("/api/report-dates")
 def report_dates():
-    reports = sorted(glob.glob("reports/pocketly_social_raw_*.json"), reverse=True)
+    reports = sorted(glob.glob(os.path.join(REPORTS_DIR, "pocketly_social_raw_*.json")), reverse=True)
     dates = [os.path.basename(r).replace("pocketly_social_raw_", "").replace(".json", "") for r in reports]
     return jsonify(dates)
 
